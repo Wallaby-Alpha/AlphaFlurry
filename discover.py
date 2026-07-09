@@ -1,16 +1,12 @@
 import requests
-from config import ALLOWED_SOURCES
 
-DEXSCREENER_NEW_PAIRS = "https://api.dexscreener.com/latest/dex/pairs/solana"
-PUMPFUN_RECENT = "https://pump.fun/api/trending"  # lightweight endpoint
+DEXSCREENER_TRENDING = "https://api.dexscreener.com/latest/dex/trending/solana"
+PUMPFUN_RECENT = "https://api.pump.fun/v1/coins/recent"
 
 
-def fetch_dexscreener_new_pairs():
-    """
-    Returns tokens from DexScreener's new pairs feed.
-    """
+def fetch_dexscreener():
     try:
-        data = requests.get(DEXSCREENER_NEW_PAIRS, timeout=10).json()
+        data = requests.get(DEXSCREENER_TRENDING, timeout=10).json()
     except Exception:
         return []
 
@@ -28,19 +24,16 @@ def fetch_dexscreener_new_pairs():
     return tokens
 
 
-def fetch_pumpfun_recent():
-    """
-    Returns recently launched Pump.fun tokens.
-    """
+def fetch_pumpfun():
     try:
         data = requests.get(PUMPFUN_RECENT, timeout=10).json()
     except Exception:
         return []
 
     tokens = []
-    for item in data.get("tokens", []):
-        token_address = item.get("mint")
-        volume_24h = float(item.get("volume_24h", 0))
+    for coin in data.get("coins", []):
+        token_address = coin.get("mint")
+        volume_24h = float(coin.get("volume_24h", 0))
 
         tokens.append({
             "address": token_address,
@@ -52,13 +45,7 @@ def fetch_pumpfun_recent():
 
 
 def discover_candidates():
-    """
-    Unified discovery pipeline.
-    Filters by ALLOWED_SOURCES (default: {2, 4}).
-    """
     tokens = []
-
-    tokens.extend(fetch_dexscreener_new_pairs())
-    tokens.extend(fetch_pumpfun_recent())
-
-    return [t for t in tokens if t["source"] in ALLOWED_SOURCES]
+    tokens.extend(fetch_dexscreener())
+    tokens.extend(fetch_pumpfun())
+    return tokens
